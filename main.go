@@ -178,6 +178,7 @@ func initProject() error {
 
 	arguments := []string{
 		fmt.Sprintf("-DCMAKE_BUILD_TYPE=%s", cfg.BuildMode),
+		"-DCMAKE_VERBOSE_MAKEFILE=ON",
 		fmt.Sprintf("-DCMAKE_TOOLCHAIN_FILE=%s", filepath.Join(ndk, "build/cmake/android.toolchain.cmake")),
 		fmt.Sprintf("-DANDROID_ABI=%s", cfg.ABI),
 		fmt.Sprintf("-DANDROID_ARM_MODE=%s", cfg.ArmMode),
