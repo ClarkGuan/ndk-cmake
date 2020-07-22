@@ -74,6 +74,7 @@ func initProject() error {
 	platform := 0
 	stl := 0
 	buildMode := 0
+	ninja := false
 	var err error
 
 	for state != -1 {
@@ -89,15 +90,13 @@ func initProject() error {
 			}
 
 		case 1: // 查找 CMake 路径
-			//cmake, err = findCMake(sdk)
-			//if err != nil {
-			//	cmake, err = readString("请输入 CMake 路径：")
-			//}
-			//if err == nil {
-			//	state = 2
-			//}
-			cmake = "cmake"
-			state = 2
+			cmake, err = findCMake(sdk)
+			if err != nil {
+				cmake, err = readString("请输入 CMake 路径：")
+			}
+			if err == nil {
+				state = 2
+			}
 
 		case 2: // 查找 NDK 路径
 			ndk, err = findNDK(sdk)
@@ -178,26 +177,35 @@ func initProject() error {
 	os.MkdirAll(buildTargetDir, 0775)
 
 	arguments := []string{
-		fmt.Sprintf("-DCMAKE_BUILD_TYPE=%s", cmakeBuildModes[buildMode]),
-		//fmt.Sprintf("-DCMAKE_MAKE_PROGRAM='%s'", filepath.Join(filepath.Dir(cmake), "ninja")),
-		fmt.Sprintf("-DCMAKE_TOOLCHAIN_FILE='%s'", filepath.Join(ndk, "build/cmake/android.toolchain.cmake")),
-		fmt.Sprintf("-DANDROID_ABI=%s", androidABIs[abi]),
-		fmt.Sprintf("-DANDROID_ARM_MODE=%s", androidArmMode[armMode]),
-		fmt.Sprintf("-DANDROID_PLATFORM=%d", platform),
-		fmt.Sprintf("-DANDROID_STL=%s", androidStl[stl]),
+		fmt.Sprintf("-DCMAKE_BUILD_TYPE=%s", cfg.BuildMode),
+		fmt.Sprintf("-DCMAKE_TOOLCHAIN_FILE=%s", filepath.Join(ndk, "build/cmake/android.toolchain.cmake")),
+		fmt.Sprintf("-DANDROID_ABI=%s", cfg.ABI),
+		fmt.Sprintf("-DANDROID_ARM_MODE=%s", cfg.ArmMode),
+		fmt.Sprintf("-DANDROID_PLATFORM=%d", cfg.Platform),
+		fmt.Sprintf("-DANDROID_STL=%s", cfg.Stl),
 	}
 
 	if neon != 0 {
-		arguments = append(arguments, fmt.Sprintf("-DANDROID_ARM_NEON=%s", androidArmNeon[neon]))
+		arguments = append(arguments, fmt.Sprintf("-DANDROID_ARM_NEON=%s", cfg.Neon))
 	}
 
 	if ld != 0 {
-		arguments = append(arguments, fmt.Sprintf("-DANDROID_LD=%s", androidLd[ld]))
+		arguments = append(arguments, fmt.Sprintf("-DANDROID_LD=%s", cfg.Ld))
 	}
 
-	arguments = append(arguments, "-DANDROID_TOOLCHAIN=clang")
-	arguments = append(arguments, "-G 'CodeBlocks - Unix Makefiles'")
-	arguments = append(arguments, fmt.Sprintf("'%s'", project))
+	if ninja {
+		arguments = append(arguments,
+			"-DANDROID_TOOLCHAIN=clang",
+			fmt.Sprintf("-DCMAKE_MAKE_PROGRAM=%s", filepath.Join(filepath.Dir(cmake), "ninja")),
+			"-G", "Android Gradle - Ninja",
+		)
+	} else {
+		arguments = append(arguments,
+			"-G", "CodeBlocks - Unix Makefiles",
+		)
+	}
+
+	arguments = append(arguments, project)
 
 	cmd := exec.Command(cmake, arguments...)
 	fmt.Println(cmd)
