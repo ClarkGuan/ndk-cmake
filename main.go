@@ -111,7 +111,6 @@ func findBuildDir(dir string) bool {
 }
 
 func initProject() error {
-	state := 0
 	sdk := ""
 	cmake := ""
 	ndk := ""
@@ -127,40 +126,58 @@ func initProject() error {
 	ninja := false
 	var err error
 
-	for state != -1 {
+	type step int
+	const (
+		stepStart step = iota
+		stepCMake
+		stepNDK
+		stepProject
+		stepOutput
+		stepABI
+		stepArmMode
+		stepNeon
+		stepLd
+		stepPlatform
+		stepSTL
+		stepBuildMode
+		stepInvalid step = -1
+	)
+	state := stepStart
+
+	for state >= stepStart {
 		switch state {
 
-		case 0: // 设置 Android SDK 的路径
+		case stepStart: // 设置 Android SDK 的路径
 			sdk, err = findAndroidSDK()
 			if err != nil {
 				sdk, err = readString("请输入 Android SDK 路径：")
 			}
 			if err == nil {
 				fmt.Println("找到 Android SDK：", sdk)
-				state = 1
+				state = stepCMake
 			}
 
-		case 1: // 查找 CMake 路径
+		case stepCMake: // 查找 CMake 路径
 			cmake, err = findCMake(sdk)
 			if err != nil {
 				cmake, err = readString("请输入 CMake 路径：")
 			}
 			if err == nil {
 				fmt.Println("找到 CMake：", cmake)
-				state = 2
+				state = stepNDK
 			}
 
-		case 2: // 查找 NDK 路径
+		case stepNDK: // 查找 NDK 路径
 			ndk, err = findNDK(sdk)
 			if err != nil {
 				ndk, err = readString("请输入 NDK 路径：")
 			}
 			if err == nil {
 				fmt.Println("找到 NDK：", ndk)
-				state = 3
+				state = stepProject
 			}
 
-		case 3: // 查找工程路径
+		case stepProject: // 查找工程路径
 			cmakeFile, _ := filepath.Abs("CMakeLists.txt")
 			if _, err = os.Stat(cmakeFile); err != nil {
 				abs, _ := filepath.Abs(".")
@@ -176,51 +193,51 @@ func initProject() error {
 			}
 			project = filepath.Dir(cmakeFile)
 			fmt.Println("找到工程目录：", project)
-			state = 31
+			state = stepOutput
 
-		case 31: // 选择输出目录名
+		case stepOutput: // 选择输出目录名
 			outputDir, _ = readString(fmt.Sprintf("请输入 CMake 生成文件目录，默认为 %s：", defaultBuildDir))
 			if len(outputDir) == 0 {
 				outputDir = defaultBuildDir
 			}
-			state = 4
+			state = stepABI
 
-		case 4: // 设置 ANDROID_ABI
+		case stepABI: // 设置 ANDROID_ABI
 			abi, _ = readInt("请输入 ANDROID_ABI，默认为 armeabi-v7a：\n\t0: armeabi-v7a\n\t1: armeabi-v7a with NEON\n\t2: arm64-v8a\n\t3: x86\n\t4: x86_64")
 			if abi == 0 || abi == 1 {
-				state = 5
+				state = stepArmMode
 			} else {
-				state = 7
+				state = stepLd
 			}
 
-		case 5: // 设置 ANDROID_ARM_MODE
+		case stepArmMode: // 设置 ANDROID_ARM_MODE
 			armMode, _ = readInt("请输入 ANDROID_ARM_MODE，默认为 thumb：\n\t0: thumb\n\t1: arm")
-			state = 6
+			state = stepNeon
 
-		case 6: // 设置 ANDROID_ARM_NEON
+		case stepNeon: // 设置 ANDROID_ARM_NEON
 			if abi == 0 {
 				neon, _ = readInt("请输入 ANDROID_ARM_NEON，默认为不选择：\n\t1: TRUE\n\t2: FALSE")
 			}
-			state = 7
+			state = stepLd
 
-		case 7: // 设置 ANDROID_LD
+		case stepLd: // 设置 ANDROID_LD
 			ld, _ = readInt("请输入 ANDROID_LD，默认为不选择：\n\t1: lld\n\t2: default")
-			state = 8
+			state = stepPlatform
 
-		case 8: // 设置 ANDROID_PLATFORM
+		case stepPlatform: // 设置 ANDROID_PLATFORM
 			platform, _ = readInt("请输入 ANDROID_PLATFORM，默认为 16：")
 			if platform < 16 {
 				platform = 16
 			}
-			state = 9
+			state = stepSTL
 
-		case 9: // 设置 ANDROID_STL
+		case stepSTL: // 设置 ANDROID_STL
 			stl, _ = readInt("请输入 ANDROID_STL，默认为 c++_static：\n\t0: c++_static\n\t1: c++_shared\n\t2: none\n\t3: system")
-			state = 10
+			state = stepBuildMode
 
-		case 10: // 设置 build mode
+		case stepBuildMode: // 设置 build mode
 			buildMode, _ = readInt("请输入构建模式，默认为 Debug：\n\t0: Debug\n\t1: Release\n\t2: RelWithDebInfo\n\t3: MinSizeRel")
-			state = -1
+			state = stepInvalid
 		}
 	}
 
