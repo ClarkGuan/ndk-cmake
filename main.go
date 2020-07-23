@@ -175,10 +175,11 @@ func initProject() error {
 				}
 			}
 			project = filepath.Dir(cmakeFile)
+			fmt.Println("找到工程目录：", project)
 			state = 31
 
 		case 31: // 选择输出目录名
-			outputDir, _ = readString("请输入 CMake 生成文件目录，默认为 defaultBuildDir：")
+			outputDir, _ = readString(fmt.Sprintf("请输入 CMake 生成文件目录，默认为 %s：", defaultBuildDir))
 			if len(outputDir) == 0 {
 				outputDir = defaultBuildDir
 			}
@@ -186,14 +187,20 @@ func initProject() error {
 
 		case 4: // 设置 ANDROID_ABI
 			abi, _ = readInt("请输入 ANDROID_ABI，默认为 armeabi-v7a：\n\t0: armeabi-v7a\n\t1: armeabi-v7a with NEON\n\t2: arm64-v8a\n\t3: x86\n\t4: x86_64")
-			state = 5
+			if abi == 0 || abi == 1 {
+				state = 5
+			} else {
+				state = 7
+			}
 
 		case 5: // 设置 ANDROID_ARM_MODE
 			armMode, _ = readInt("请输入 ANDROID_ARM_MODE，默认为 thumb：\n\t0: thumb\n\t1: arm")
 			state = 6
 
 		case 6: // 设置 ANDROID_ARM_NEON
-			neon, _ = readInt("请输入 ANDROID_ARM_NEON，默认为不选择：\n\t1: TRUE\n\t2: FALSE")
+			if abi != 1 {
+				neon, _ = readInt("请输入 ANDROID_ARM_NEON，默认为不选择：\n\t1: TRUE\n\t2: FALSE")
+			}
 			state = 7
 
 		case 7: // 设置 ANDROID_LD
