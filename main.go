@@ -203,7 +203,7 @@ func initProject() error {
 			state = stepABI
 
 		case stepABI: // 设置 ANDROID_ABI
-			abi, _ = readInt("请输入 ANDROID_ABI，默认为 armeabi-v7a：\n\t0: armeabi-v7a\n\t1: armeabi-v7a with NEON\n\t2: arm64-v8a\n\t3: x86\n\t4: x86_64")
+			abi, _ = readInt("请输入 ANDROID_ABI，默认为 armeabi-v7a：\n\t1: armeabi-v7a with NEON\n\t2: arm64-v8a\n\t3: x86\n\t4: x86_64")
 			if abi == 0 || abi == 1 {
 				state = stepArmMode
 			} else {
@@ -211,7 +211,7 @@ func initProject() error {
 			}
 
 		case stepArmMode: // 设置 ANDROID_ARM_MODE
-			armMode, _ = readInt("请输入 ANDROID_ARM_MODE，默认为 thumb：\n\t0: thumb\n\t1: arm")
+			armMode, _ = readInt("请输入 ANDROID_ARM_MODE，默认为 thumb：\n\t1: arm")
 			state = stepNeon
 
 		case stepNeon: // 设置 ANDROID_ARM_NEON
