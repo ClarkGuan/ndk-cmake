@@ -198,7 +198,7 @@ func initProject() error {
 			state = 6
 
 		case 6: // 设置 ANDROID_ARM_NEON
-			if abi != 1 {
+			if abi == 0 {
 				neon, _ = readInt("请输入 ANDROID_ARM_NEON，默认为不选择：\n\t1: TRUE\n\t2: FALSE")
 			}
 			state = 7
