@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -41,24 +40,74 @@ func main() {
 }
 
 func buildProject(args []string) error {
-	var dir string
-
-	buildFlags := flag.NewFlagSet("ndk-cmake build", flag.ExitOnError)
-	buildFlags.StringVar(&dir, "p", ".", "cmake 工程路径，默认为 $PWD")
-	buildFlags.Parse(args)
-
-	cfg := &buildConfig{}
-	buildTargetDir := filepath.Join(dir, defaultBuildDir)
-	cfgFilePath := filepath.Join(buildTargetDir, defaultBuildConfig)
-	if err := cfg.ReadFrom(cfgFilePath); err != nil {
-		return err
+	var dirs = args
+	if len(args) == 0 {
+		dirs = findBuildDirs()
+	} else {
+		var newDirs []string
+		for _, dir := range dirs {
+			if findBuildDir(dir) {
+				newDirs = append(newDirs, dir)
+			}
+		}
+		dirs = newDirs
+	}
+	if len(dirs) == 0 {
+		return errNoBuildDirs
+	} else {
+		fmt.Println("找到目标目录：", dirs)
 	}
 
-	cmd := exec.Command(cfg.CMake, "--build", buildTargetDir, "--", "-j", fmt.Sprintf("%d", runtime.NumCPU()))
-	fmt.Println(cmd)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	return cmd.Run()
+	cfg := &buildConfig{}
+	for _, dir := range dirs {
+		cfgFilePath := filepath.Join(dir, defaultBuildConfig)
+		if err := cfg.ReadFrom(cfgFilePath); err != nil {
+			return err
+		}
+
+		cmd := exec.Command(cfg.CMake, "--build", dir, "--", "-j", fmt.Sprintf("%d", runtime.NumCPU()))
+		fmt.Println(cmd)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		if err := cmd.Run(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func findBuildDirs() []string {
+	d, _ := filepath.Abs(".")
+	if b := findBuildDir(d); b {
+		return []string{d}
+	}
+
+	infos, err := ioutil.ReadDir(d)
+	if err != nil {
+		return nil
+	}
+	var ret []string
+	for _, info := range infos {
+		fullPath := filepath.Join(d, info.Name())
+		if info.IsDir() && findBuildDir(fullPath) {
+			ret = append(ret, fullPath)
+		}
+	}
+	return ret
+}
+
+func findBuildDir(dir string) bool {
+	infos, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, info := range infos {
+		if !info.IsDir() && info.Name() == defaultBuildConfig {
+			return true
+		}
+	}
+	return false
 }
 
 func initProject() error {
@@ -67,6 +116,7 @@ func initProject() error {
 	cmake := ""
 	ndk := ""
 	project := ""
+	outputDir := ""
 	abi := 0
 	armMode := 0
 	neon := 0
@@ -86,6 +136,7 @@ func initProject() error {
 				sdk, err = readString("请输入 Android SDK 路径：")
 			}
 			if err == nil {
+				fmt.Println("找到 Android SDK：", sdk)
 				state = 1
 			}
 
@@ -95,6 +146,7 @@ func initProject() error {
 				cmake, err = readString("请输入 CMake 路径：")
 			}
 			if err == nil {
+				fmt.Println("找到 CMake：", cmake)
 				state = 2
 			}
 
@@ -104,19 +156,31 @@ func initProject() error {
 				ndk, err = readString("请输入 NDK 路径：")
 			}
 			if err == nil {
+				fmt.Println("找到 NDK：", ndk)
 				state = 3
 			}
 
 		case 3: // 查找工程路径
-			abs, _ := filepath.Abs(".")
-			project, err = readString(fmt.Sprintf("请输入工程路径，默认为 %s：", abs))
-			if len(project) == 0 {
-				project = abs
-			}
-			cmakeFile := filepath.Join(project, "CMakeLists.txt")
+			cmakeFile, _ := filepath.Abs("CMakeLists.txt")
 			if _, err = os.Stat(cmakeFile); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
+				abs, _ := filepath.Abs(".")
+				project, err = readString(fmt.Sprintf("请输入工程路径，默认为 %s：", abs))
+				if len(project) == 0 {
+					project = abs
+				}
+				cmakeFile, _ = filepath.Abs(filepath.Join(project, "CMakeLists.txt"))
+				if _, err = os.Stat(cmakeFile); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
+			}
+			project = filepath.Dir(cmakeFile)
+			state = 31
+
+		case 31: // 选择输出目录名
+			outputDir, _ = readString("请输入 CMake 生成文件目录，默认为 defaultBuildDir：")
+			if len(outputDir) == 0 {
+				outputDir = defaultBuildDir
 			}
 			state = 4
 
@@ -171,7 +235,7 @@ func initProject() error {
 	fmt.Println(cfg)
 	fmt.Println("--------------------------------")
 
-	buildTargetDir := filepath.Join(project, defaultBuildDir)
+	buildTargetDir := filepath.Join(project, outputDir)
 
 	os.RemoveAll(buildTargetDir)
 	os.MkdirAll(buildTargetDir, 0775)
@@ -271,6 +335,7 @@ var (
 	errAndroidSDKNotFound = errors.New("no Android SDK found")
 	errNoVersionDirFound  = errors.New("no version dir found")
 	errNoNDKFound         = errors.New("no Android NDK found")
+	errNoBuildDirs        = errors.New("no build dirs found")
 )
 
 var buf = bufio.NewReader(os.Stdin)
