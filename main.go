@@ -236,7 +236,7 @@ func initProject() error {
 			state = stepBuildMode
 
 		case stepBuildMode: // 设置 build mode
-			buildMode, _ = readInt("请输入构建模式，默认为 Debug：\n\t0: Debug\n\t1: Release\n\t2: RelWithDebInfo\n\t3: MinSizeRel")
+			buildMode, _ = readInt("请输入构建模式，默认为 Debug：\n\t1: Release\n\t2: RelWithDebInfo\n\t3: MinSizeRel")
 			state = stepInvalid
 		}
 	}
