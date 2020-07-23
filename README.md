@@ -151,3 +151,8 @@ Hello world!!!
 [程序执行完毕]
     0m00.03s real     0m00.02s user     0m00.00s system
 ```
+
+## 其他
+
+1. 寻找 Android SDK 路径时使用 `$ANDROID_HOME` 环境变量，如果没有，会让用户手动输入
+2. 优先使用 Android SDK 中的 NDK 和 CMake 工具；如果没有下载，需要提前下载好
