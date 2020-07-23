@@ -77,7 +77,6 @@ $ ndk-cmake init
 请输入 ANDROID_PLATFORM，默认为 16：
 
 请输入 ANDROID_STL，默认为 c++_static：
-        0: c++_static
         1: c++_shared
         2: none
         3: system

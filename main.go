@@ -232,7 +232,7 @@ func initProject() error {
 			state = stepSTL
 
 		case stepSTL: // 设置 ANDROID_STL
-			stl, _ = readInt("请输入 ANDROID_STL，默认为 c++_static：\n\t0: c++_static\n\t1: c++_shared\n\t2: none\n\t3: system")
+			stl, _ = readInt("请输入 ANDROID_STL，默认为 c++_static：\n\t1: c++_shared\n\t2: none\n\t3: system")
 			state = stepBuildMode
 
 		case stepBuildMode: // 设置 build mode
