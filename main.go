@@ -16,7 +16,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "请使用子命令 init 或 build")
+		fmt.Fprintln(os.Stderr, "请使用子命令 init、reload 或 build")
 		os.Exit(1)
 	}
 
@@ -33,10 +33,50 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "reload":
+		if err := reloadProject(os.Args[2:]); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
 	default:
-		fmt.Fprintln(os.Stderr, "请使用子命令 init 或 build")
+		fmt.Fprintln(os.Stderr, "请使用子命令 init、reload 或 build")
 		os.Exit(1)
 	}
+}
+
+func reloadProject(args []string) error {
+	var dirs = args
+	if len(args) == 0 {
+		dirs = findBuildDirs()
+	} else {
+		var newDirs []string
+		for _, dir := range dirs {
+			if findBuildDir(dir) {
+				newDirs = append(newDirs, dir)
+			}
+		}
+		dirs = newDirs
+	}
+	if len(dirs) == 0 {
+		return errNoBuildDirs
+	} else {
+		fmt.Println("找到目标目录：", dirs)
+	}
+
+	cfg := &buildConfig{}
+	for _, dir := range dirs {
+		cfgFilePath := filepath.Join(dir, defaultBuildConfig)
+		if err := cfg.ReadFrom(cfgFilePath); err != nil {
+			return err
+		}
+
+		if err := initFromConfig(cfg, dir, false); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func buildProject(args []string) error {
@@ -123,7 +163,6 @@ func initProject() error {
 	platform := 0
 	stl := 0
 	buildMode := 0
-	ninja := false
 	var err error
 
 	type step int
@@ -264,28 +303,36 @@ func initProject() error {
 	os.RemoveAll(buildTargetDir)
 	os.MkdirAll(buildTargetDir, 0775)
 
+	if err = initFromConfig(cfg, buildTargetDir, false); err != nil {
+		return err
+	}
+
+	return cfg.WriteTo(filepath.Join(buildTargetDir, defaultBuildConfig))
+}
+
+func initFromConfig(cfg *buildConfig, buildDir string, ninja bool) error {
 	arguments := []string{
 		fmt.Sprintf("-DCMAKE_BUILD_TYPE=%s", cfg.BuildMode),
 		"-DCMAKE_VERBOSE_MAKEFILE=ON",
-		fmt.Sprintf("-DCMAKE_TOOLCHAIN_FILE=%s", filepath.Join(ndk, "build/cmake/android.toolchain.cmake")),
+		fmt.Sprintf("-DCMAKE_TOOLCHAIN_FILE=%s", filepath.Join(cfg.AndroidNDK, "build/cmake/android.toolchain.cmake")),
 		fmt.Sprintf("-DANDROID_ABI=%s", cfg.ABI),
 		fmt.Sprintf("-DANDROID_ARM_MODE=%s", cfg.ArmMode),
 		fmt.Sprintf("-DANDROID_PLATFORM=%d", cfg.Platform),
 		fmt.Sprintf("-DANDROID_STL=%s", cfg.Stl),
 	}
 
-	if neon != 0 {
+	if len(cfg.Neon) > 0 {
 		arguments = append(arguments, fmt.Sprintf("-DANDROID_ARM_NEON=%s", cfg.Neon))
 	}
 
-	if ld != 0 {
+	if len(cfg.Ld) > 0 {
 		arguments = append(arguments, fmt.Sprintf("-DANDROID_LD=%s", cfg.Ld))
 	}
 
 	if ninja {
 		arguments = append(arguments,
 			"-DANDROID_TOOLCHAIN=clang",
-			fmt.Sprintf("-DCMAKE_MAKE_PROGRAM=%s", filepath.Join(filepath.Dir(cmake), "ninja")),
+			fmt.Sprintf("-DCMAKE_MAKE_PROGRAM=%s", filepath.Join(filepath.Dir(cfg.CMake), "ninja")),
 			"-G", "Android Gradle - Ninja",
 		)
 	} else {
@@ -294,19 +341,15 @@ func initProject() error {
 		)
 	}
 
-	arguments = append(arguments, project)
+	arguments = append(arguments, cfg.Project)
 
-	cmd := exec.Command(cmake, arguments...)
+	cmd := exec.Command(cfg.CMake, arguments...)
 	fmt.Println(cmd)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
-	cmd.Dir = buildTargetDir
+	cmd.Dir = buildDir
 
-	if err = cmd.Run(); err != nil {
-		return err
-	}
-
-	return cfg.WriteTo(filepath.Join(buildTargetDir, defaultBuildConfig))
+	return cmd.Run()
 }
 
 type buildConfig struct {
