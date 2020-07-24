@@ -366,20 +366,25 @@ type buildConfig struct {
 	BuildMode  string `json:"build_mode"`
 }
 
+//func (b *buildConfig) String() string {
+//	var builder strings.Builder
+//	fmt.Fprintf(&builder, "Project: %q\n", b.Project)
+//	fmt.Fprintf(&builder, "Android SDK: %q\n", b.AndroidSDK)
+//	fmt.Fprintf(&builder, "CMake: %q\n", b.CMake)
+//	fmt.Fprintf(&builder, "NDK: %q\n", b.AndroidNDK)
+//	fmt.Fprintf(&builder, "ANDROID_ABI: %q\n", b.ABI)
+//	fmt.Fprintf(&builder, "ANDROID_ARM_MODE: %q\n", b.ArmMode)
+//	fmt.Fprintf(&builder, "ANDROID_ARM_NEON: %q\n", b.Neon)
+//	fmt.Fprintf(&builder, "ANDROID_LD: %q\n", b.Ld)
+//	fmt.Fprintf(&builder, "ANDROID_PLATFORM: %d\n", b.Platform)
+//	fmt.Fprintf(&builder, "ANDROID_STL: %q\n", b.Stl)
+//	fmt.Fprintf(&builder, "构建模式: %q", b.BuildMode)
+//	return builder.String()
+//}
+
 func (b *buildConfig) String() string {
-	var builder strings.Builder
-	fmt.Fprintf(&builder, "Project: %q\n", b.Project)
-	fmt.Fprintf(&builder, "Android SDK: %q\n", b.AndroidSDK)
-	fmt.Fprintf(&builder, "CMake: %q\n", b.CMake)
-	fmt.Fprintf(&builder, "NDK: %q\n", b.AndroidNDK)
-	fmt.Fprintf(&builder, "ANDROID_ABI: %q\n", b.ABI)
-	fmt.Fprintf(&builder, "ANDROID_ARM_MODE: %q\n", b.ArmMode)
-	fmt.Fprintf(&builder, "ANDROID_ARM_NEON: %q\n", b.Neon)
-	fmt.Fprintf(&builder, "ANDROID_LD: %q\n", b.Ld)
-	fmt.Fprintf(&builder, "ANDROID_PLATFORM: %d\n", b.Platform)
-	fmt.Fprintf(&builder, "ANDROID_STL: %q\n", b.Stl)
-	fmt.Fprintf(&builder, "构建模式: %q", b.BuildMode)
-	return builder.String()
+	marshalIndent, _ := json.MarshalIndent(b, "", "  ")
+	return string(marshalIndent)
 }
 
 func (b *buildConfig) WriteTo(s string) error {
