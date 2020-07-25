@@ -87,17 +87,19 @@ $ ndk-cmake init
         3: MinSizeRel
 1
 --------------------------------
-Project: "/Users/xxx/dev/source/cprojects/home/hello_world"
-Android SDK: "/Users/xxx/Library/Android/sdk"
-CMake: "/Users/xxx/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake"
-NDK: "/Users/xxx/Library/Android/sdk/ndk/21.3.6528147"
-ANDROID_ABI: "arm64-v8a"
-ANDROID_ARM_MODE: "thumb"
-ANDROID_ARM_NEON: ""
-ANDROID_LD: ""
-ANDROID_PLATFORM: 16
-ANDROID_STL: "c++_static"
-构建模式: "Release"
+{
+  "project": "/Users/xxx/dev/source/cprojects/home/hello_world",
+  "sdk": "/Users/xxx/Library/Android/sdk",
+  "cmake": "/Users/xxx/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake",
+  "ndk": "/Users/xxx/Library/Android/sdk/ndk/21.3.6528147",
+  "abi": "arm64-v8a",
+  "arm_mode": "thumb",
+  "neon": "",
+  "ld": "",
+  "platform": 16,
+  "stl": "c++_static",
+  "build_mode": "Release"
+}
 --------------------------------
 /Users/xxx/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_TOOLCHAIN_FILE=/Users/xxx/Library/Android/sdk/ndk/21.3.6528147/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_ARM_MODE=thumb -DANDROID_PLATFORM=16 -DANDROID_STL=c++_static -G CodeBlocks - Unix Makefiles /Users/xxx/dev/source/cprojects/home/hello_world
 -- Check for working C compiler: /Users/xxx/Library/Android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang
