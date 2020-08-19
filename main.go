@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -80,8 +82,13 @@ func reloadProject(args []string) error {
 }
 
 func buildProject(args []string) error {
-	var dirs = args
-	if len(args) == 0 {
+	flagSet := flag.NewFlagSet("ndk-cmake build", flag.ExitOnError)
+	var target string
+	flagSet.StringVar(&target, "target", "", "makefile target name")
+	flagSet.Parse(args)
+
+	var dirs = flagSet.Args()
+	if len(dirs) == 0 {
 		dirs = findBuildDirs()
 	} else {
 		var newDirs []string
@@ -104,8 +111,12 @@ func buildProject(args []string) error {
 		if err := cfg.ReadFrom(cfgFilePath); err != nil {
 			return err
 		}
-
-		cmd := exec.Command(cfg.CMake, "--build", dir, "--", "-j", fmt.Sprintf("%d", runtime.NumCPU()))
+		cmakeArgs := []string{"--build", dir}
+		if len(target) > 0 {
+			cmakeArgs = append(cmakeArgs, "--target", target)
+		}
+		cmakeArgs = append(cmakeArgs, "--", "-j", fmt.Sprintf("%d", runtime.NumCPU()))
+		cmd := exec.Command(cfg.CMake, cmakeArgs...)
 		fmt.Println(cmd)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -264,9 +275,30 @@ func initProject() error {
 			state = stepPlatform
 
 		case stepPlatform: // 设置 ANDROID_PLATFORM
-			platform, _ = readInt("请输入 ANDROID_PLATFORM，默认为 16：")
+			versions, _ := findPlatformVersions(ndk)
+			defaultVersion := 16
+			desc := "请输入 ANDROID_PLATFORM，默认为 %d："
+			if len(versions) > 0 {
+				defaultVersion = versions[0]
+				builders := new(strings.Builder)
+				fmt.Fprintf(builders, "请输入 ANDROID_PLATFORM，\n")
+				for _, version := range versions {
+					fmt.Fprintf(builders, "\t%d: %s\n", version, androidVersions[version])
+				}
+				fmt.Fprint(builders, "默认为 %d:")
+				desc = builders.String()
+			}
+			platform, _ = readInt(fmt.Sprintf(desc, defaultVersion))
 			if platform < 16 {
 				platform = 16
+			}
+			for i := range versions {
+				if platform == versions[i] {
+					break
+				} else if platform < versions[i] {
+					platform = versions[i-1]
+					break
+				}
 			}
 			state = stepSTL
 
@@ -408,6 +440,7 @@ var (
 	errNoVersionDirFound  = errors.New("no version dir found")
 	errNoNDKFound         = errors.New("no Android NDK found")
 	errNoBuildDirs        = errors.New("no build dirs found")
+	errNoPlatforms        = errors.New("no platforms found")
 )
 
 var buf = bufio.NewReader(os.Stdin)
@@ -445,6 +478,28 @@ func findNDK(sdk string) (string, error) {
 		return "", errNoNDKFound
 	}
 	return filepath.Dir(ndkBuildPath), nil
+}
+
+func findPlatformVersions(ndk string) ([]int, error) {
+	infos, err := ioutil.ReadDir(filepath.Join(ndk, "platforms"))
+	if err != nil {
+		return nil, err
+	}
+	ret := []int(nil)
+	for _, info := range infos {
+		dirName := info.Name()
+		if strings.HasPrefix(dirName, "android-") {
+			if code, err := strconv.Atoi(dirName[len("android-"):]); err == nil {
+				ret = append(ret, code)
+			}
+		}
+	}
+	if len(ret) <= 0 {
+		return nil, errNoPlatforms
+	} else {
+		sort.Sort(sort.IntSlice(ret))
+	}
+	return ret, nil
 }
 
 func findMaxVersionDir(d string) (string, error) {
@@ -551,4 +606,37 @@ var androidStl = []string{
 
 var cmakeBuildModes = []string{
 	"Debug", "Release", "RelWithDebInfo", "MinSizeRel",
+}
+
+var androidVersions = map[int]string{
+	1:  "Android 1.0",
+	2:  "Android 1.1",
+	3:  "Android 1.5",
+	4:  "Android 1.6",
+	5:  "Android 2.0",
+	6:  "Android 2.0.1",
+	7:  "Android 2.1",
+	8:  "Android 2.2",
+	9:  "Android 2.3",
+	10: "Android 2.3.3",
+	11: "Android 3.0",
+	12: "Android 3.1",
+	13: "Android 3.2",
+	14: "Android 4.0",
+	15: "Android 4.0.3",
+	16: "Android 4.1",
+	17: "Android 4.2",
+	18: "Android 4.3",
+	19: "Android 4.4",
+	20: "Android 4.4W",
+	21: "Android 5.0 Lollipop",
+	22: "Android 5.1 Lollipop",
+	23: "Android 6.0 Marshmallow",
+	24: "Android 7.0 Nougat",
+	25: "Android 7.1 Nougat",
+	26: "Android 8.0 Oreo",
+	27: "Android 8.1 Oreo",
+	28: "Android 9.0 Pie",
+	29: "Android 10.0 Q",
+	30: "Android 11.0 R",
 }
