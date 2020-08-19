@@ -182,7 +182,6 @@ func initProject() error {
 		stepCMake
 		stepNDK
 		stepProject
-		stepOutput
 		stepABI
 		stepArmMode
 		stepNeon
@@ -190,6 +189,7 @@ func initProject() error {
 		stepPlatform
 		stepSTL
 		stepBuildMode
+		stepOutput
 		stepInvalid step = -1
 	)
 	state := stepStart
@@ -243,14 +243,28 @@ func initProject() error {
 			}
 			project = filepath.Dir(cmakeFile)
 			fmt.Println("找到工程目录：", project)
-			state = stepOutput
+			state = stepABI
 
 		case stepOutput: // 选择输出目录名
-			outputDir, _ = readString(fmt.Sprintf("请输入 CMake 生成文件目录，默认为 %s：", defaultBuildDir))
-			if len(outputDir) == 0 {
-				outputDir = defaultBuildDir
+			buffers := new(strings.Builder)
+			fmt.Fprintf(buffers, "cmake")
+			if abi != 1 {
+				fmt.Fprintf(buffers, "-%s", androidABIs[abi])
+			} else {
+				fmt.Fprintf(buffers, "-armeabi-v7a-with-NEON")
 			}
-			state = stepABI
+			if abi < 2 {
+				fmt.Fprintf(buffers, "-%s", androidArmMode[armMode])
+			}
+			fmt.Fprintf(buffers, "-%s", androidStl[stl])
+			fmt.Fprintf(buffers, "-android%d", platform)
+			fmt.Fprintf(buffers, "-%s", cmakeBuildModes[buildMode])
+			defaultBuildDirName := buffers.String()
+			outputDir, _ = readString(fmt.Sprintf("请输入 CMake 生成文件目录，默认为 %s：", defaultBuildDirName))
+			if len(outputDir) == 0 {
+				outputDir = defaultBuildDirName
+			}
+			state = stepInvalid
 
 		case stepABI: // 设置 ANDROID_ABI
 			abi, _ = readInt("请输入 ANDROID_ABI，默认为 armeabi-v7a：\n\t1: armeabi-v7a with NEON\n\t2: arm64-v8a\n\t3: x86\n\t4: x86_64")
@@ -308,7 +322,7 @@ func initProject() error {
 
 		case stepBuildMode: // 设置 build mode
 			buildMode, _ = readInt("请输入构建模式，默认为 Debug：\n\t1: Release\n\t2: RelWithDebInfo\n\t3: MinSizeRel")
-			state = stepInvalid
+			state = stepOutput
 		}
 	}
 
