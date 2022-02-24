@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/gofunky/semver"
 )
 
 func main() {
@@ -289,11 +291,10 @@ func initProject() error {
 			state = stepPlatform
 
 		case stepPlatform: // 设置 ANDROID_PLATFORM
-			versions, _ := findPlatformVersions(ndk)
-			defaultVersion := 16
+			versions, _ := findPlatformVersions(ndk, abi)
+			defaultVersion := 21
 			desc := "请输入 ANDROID_PLATFORM，默认为 %d："
 			if len(versions) > 0 {
-				defaultVersion = versions[0]
 				builders := new(strings.Builder)
 				fmt.Fprintf(builders, "请输入 ANDROID_PLATFORM，\n")
 				for _, version := range versions {
@@ -303,16 +304,15 @@ func initProject() error {
 				desc = builders.String()
 			}
 			platform, _ = readInt(fmt.Sprintf(desc, defaultVersion))
-			if platform < 16 {
-				platform = 16
-			}
+			found := false
 			for i := range versions {
 				if platform == versions[i] {
-					break
-				} else if platform < versions[i] {
-					platform = versions[i-1]
+					found = true
 					break
 				}
+			}
+			if !found {
+				platform = defaultVersion
 			}
 			state = stepSTL
 
@@ -459,7 +459,7 @@ var (
 
 var buf = bufio.NewReader(os.Stdin)
 
-const defaultBuildDir = "cmake-android-build"
+//const defaultBuildDir = "cmake-android-build"
 
 const defaultBuildConfig = ".cmake-android-build.cfg"
 
@@ -494,10 +494,10 @@ func findNDK(sdk string) (string, error) {
 	return filepath.Dir(ndkBuildPath), nil
 }
 
-func findPlatformVersions(ndk string) ([]int, error) {
+func findPlatformVersions(ndk string, abi int) ([]int, error) {
 	infos, err := ioutil.ReadDir(filepath.Join(ndk, "platforms"))
 	if err != nil {
-		return nil, err
+		return findPlatformVersionsOverNDKr22(ndk, abi)
 	}
 	ret := []int(nil)
 	for _, info := range infos {
@@ -516,6 +516,43 @@ func findPlatformVersions(ndk string) ([]int, error) {
 	return ret, nil
 }
 
+func findPlatformVersionsOverNDKr22(ndk string, _ int) ([]int, error) {
+	jsonContent, err := os.ReadFile(filepath.Join(ndk, "meta", "platforms.json"))
+	if err != nil {
+		return nil, err
+	}
+	obj := make(map[string]interface{})
+	if err = json.Unmarshal(jsonContent, &obj); err != nil {
+		return nil, err
+	}
+
+	min, max, err := func(m map[string]interface{}) (min int, max int, err error) {
+		if minVal, ok := m["min"]; ok {
+			min = int(minVal.(float64))
+		} else {
+			return 0, 0, fmt.Errorf("min not found: %s", m)
+		}
+
+		if maxVal, ok := m["max"]; ok {
+			max = int(maxVal.(float64))
+		} else {
+			return 0, 0, fmt.Errorf("max not found: %s", m)
+		}
+
+		return
+	}(obj)
+	if err != nil {
+		return nil, err
+	}
+	return func(min, max int) []int {
+		var ret []int
+		for i := min; i <= max; i++ {
+			ret = append(ret, i)
+		}
+		return ret
+	}(min, max), nil
+}
+
 func findMaxVersionDir(d string) (string, error) {
 	file, err := os.Open(d)
 	if err != nil {
@@ -526,51 +563,57 @@ func findMaxVersionDir(d string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	max := ""
+	var max = struct {
+		ver  *semver.Version
+		path string
+	}{
+		ver: nil, path: "",
+	}
 	for _, info := range children {
 		if info.IsDir() {
-			newPath := filepath.Join(d, info.Name())
-			if compareVersion(max, newPath) < 0 {
-				max = newPath
+			newVer := semver.MustParse(info.Name())
+			if max.ver == nil || max.ver.LT(newVer) {
+				max.ver = &newVer
+				max.path = filepath.Join(d, info.Name())
 			}
 		}
 	}
-	if len(max) == 0 {
+	if len(max.path) == 0 {
 		return "", errNoVersionDirFound
 	}
-	return max, nil
+	return max.path, nil
 }
 
-func compareVersion(s1, s2 string) int {
-	if s1 == s2 {
-		return 0
-	}
-
-	var pre1, pre2 string
-	var post1, post2 string
-	if index1 := strings.Index(s1, "."); index1 == -1 {
-		pre1 = s1
-	} else {
-		pre1 = s1[:index1]
-		post1 = s1[index1+1:]
-	}
-	if index2 := strings.Index(s2, "."); index2 == -1 {
-		pre2 = s2
-	} else {
-		pre2 = s2[:index2]
-		post2 = s2[index2+1:]
-	}
-	var i1, i2 int
-	i1, _ = strconv.Atoi(pre1)
-	i2, _ = strconv.Atoi(pre2)
-	if i1 == i2 {
-		return compareVersion(post1, post2)
-	} else if i1 > i2 {
-		return 1
-	} else {
-		return -1
-	}
-}
+//func compareVersion(s1, s2 string) int {
+//	if s1 == s2 {
+//		return 0
+//	}
+//
+//	var pre1, pre2 string
+//	var post1, post2 string
+//	if index1 := strings.Index(s1, "."); index1 == -1 {
+//		pre1 = s1
+//	} else {
+//		pre1 = s1[:index1]
+//		post1 = s1[index1+1:]
+//	}
+//	if index2 := strings.Index(s2, "."); index2 == -1 {
+//		pre2 = s2
+//	} else {
+//		pre2 = s2[:index2]
+//		post2 = s2[index2+1:]
+//	}
+//	var i1, i2 int
+//	i1, _ = strconv.Atoi(pre1)
+//	i2, _ = strconv.Atoi(pre2)
+//	if i1 == i2 {
+//		return compareVersion(post1, post2)
+//	} else if i1 > i2 {
+//		return 1
+//	} else {
+//		return -1
+//	}
+//}
 
 func readInt(txt string) (int, error) {
 	if len(txt) > 0 {
@@ -653,4 +696,5 @@ var androidVersions = map[int]string{
 	28: "Android 9.0 Pie",
 	29: "Android 10.0 Q",
 	30: "Android 11.0 R",
+	31: "Android 12.0",
 }
