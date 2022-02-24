@@ -61,7 +61,7 @@ $ ndk-cmake init
 找到 Android SDK： /Users/xxx/Library/Android/sdk
 找到 CMake： /Users/xxx/Library/Android/sdk/cmake/3.18.1/bin/cmake
 找到 NDK： /Users/xxx/Library/Android/sdk/ndk/21.4.7075529
-找到工程目录： /Users/xxx/source/cpro/home/primer00
+找到工程目录： /Users/xxx/source/cpro/home/hello
 请输入 ANDROID_ABI，默认为 armeabi-v7a：
         1: armeabi-v7a with NEON
         2: arm64-v8a
