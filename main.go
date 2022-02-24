@@ -572,6 +572,12 @@ func findMaxVersionDir(d string) (string, error) {
 	for _, info := range children {
 		if info.IsDir() {
 			newVer := semver.MustParse(info.Name())
+			// 从 Android NDK r23 开始，工具链文件将在使用 CMake 3.21 或更高版本时委托给 CMake 的内置支持。
+			// 经过测试，实际上从 r22 开始就已经有一些变化了
+			if newVer.Major >= 22 {
+				// 不支持 r22 以上的 NDK
+				continue
+			}
 			if max.ver == nil || max.ver.LT(newVer) {
 				max.ver = &newVer
 				max.path = filepath.Join(d, info.Name())

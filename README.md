@@ -59,11 +59,9 @@ target_link_libraries(hello_world log)
 ```bash
 $ ndk-cmake init
 找到 Android SDK： /Users/xxx/Library/Android/sdk
-找到 CMake： /Users/xxx/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake
-找到 NDK： /Users/xxx/Library/Android/sdk/ndk/21.3.6528147
-找到工程目录： /Users/xxx/dev/source/cprojects/home/hello_world
-请输入 CMake 生成文件目录，默认为 cmake-android-build：
-
+找到 CMake： /Users/xxx/Library/Android/sdk/cmake/3.18.1/bin/cmake
+找到 NDK： /Users/xxx/Library/Android/sdk/ndk/21.4.7075529
+找到工程目录： /Users/xxx/source/cpro/home/primer00
 请输入 ANDROID_ABI，默认为 armeabi-v7a：
         1: armeabi-v7a with NEON
         2: arm64-v8a
@@ -74,7 +72,21 @@ $ ndk-cmake init
         1: lld
         2: default
 
-请输入 ANDROID_PLATFORM，默认为 16：
+请输入 ANDROID_PLATFORM，
+        16: Android 4.1
+        17: Android 4.2
+        18: Android 4.3
+        19: Android 4.4
+        21: Android 5.0 Lollipop
+        22: Android 5.1 Lollipop
+        23: Android 6.0 Marshmallow
+        24: Android 7.0 Nougat
+        26: Android 8.0 Oreo
+        27: Android 8.1 Oreo
+        28: Android 9.0 Pie
+        29: Android 10.0 Q
+        30: Android 11.0 R
+默认为 21:
 
 请输入 ANDROID_STL，默认为 c++_static：
         1: c++_shared
@@ -86,37 +98,37 @@ $ ndk-cmake init
         2: RelWithDebInfo
         3: MinSizeRel
 1
+请输入 CMake 生成文件目录，默认为 cmake-arm64-v8a-c++_static-android21-Release：
+
 --------------------------------
 {
-  "project": "/Users/xxx/dev/source/cprojects/home/hello_world",
+  "project": "/Users/xxx/source/cpro/home/hello",
   "sdk": "/Users/xxx/Library/Android/sdk",
-  "cmake": "/Users/xxx/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake",
-  "ndk": "/Users/xxx/Library/Android/sdk/ndk/21.3.6528147",
+  "cmake": "/Users/xxx/Library/Android/sdk/cmake/3.18.1/bin/cmake",
+  "ndk": "/Users/xxx/Library/Android/sdk/ndk/21.4.7075529",
   "abi": "arm64-v8a",
   "arm_mode": "thumb",
   "neon": "",
   "ld": "",
-  "platform": 16,
+  "platform": 21,
   "stl": "c++_static",
   "build_mode": "Release"
 }
 --------------------------------
-/Users/xxx/Library/Android/sdk/cmake/3.10.2.4988404/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_TOOLCHAIN_FILE=/Users/xxx/Library/Android/sdk/ndk/21.3.6528147/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_ARM_MODE=thumb -DANDROID_PLATFORM=16 -DANDROID_STL=c++_static -G CodeBlocks - Unix Makefiles /Users/xxx/dev/source/cprojects/home/hello_world
--- Check for working C compiler: /Users/xxx/Library/Android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang
--- Check for working C compiler: /Users/xxx/Library/Android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang -- works
+/Users/xxx/Library/Android/sdk/cmake/3.18.1/bin/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_TOOLCHAIN_FILE=/Users/xxx/Library/Android/sdk/ndk/21.4.7075529/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_ARM_MODE=thumb -DANDROID_PLATFORM=21 -DANDROID_STL=c++_static -G CodeBlocks - Unix Makefiles /Users/xxx/source/cpro/home/hello
 -- Detecting C compiler ABI info
 -- Detecting C compiler ABI info - done
+-- Check for working C compiler: /Users/xxx/Library/Android/sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang - skipped
 -- Detecting C compile features
 -- Detecting C compile features - done
--- Check for working CXX compiler: /Users/xxx/Library/Android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++
--- Check for working CXX compiler: /Users/xxx/Library/Android/sdk/ndk/21.3.6528147/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ -- works
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /Users/xxx/Library/Android/sdk/ndk/21.4.7075529/toolchains/llvm/prebuilt/darwin-x86_64/bin/clang++ - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 -- Configuring done
 -- Generating done
--- Build files have been written to: /Users/xxx/dev/source/cprojects/home/hello_world/cmake-android-build
+-- Build files have been written to: /Users/xxx/source/cpro/home/hello/cmake-arm64-v8a-c++_static-android21-Release
 ```
 
 主要做几件事：
@@ -134,27 +146,26 @@ $ ndk-cmake init
 
 ```bash
 $ ndk-cmake build
-找到目标目录： [/Users/xxx/dev/source/cprojects/home/hello_world/cmake-android-build]
+找到目标目录： [/Users/xxx/source/cpro/home/hello/cmake-arm64-v8a-c++_static-android21-Release]
 ...
 ```
 
-最后在 `cmake-android-build` 目录中生成目标可执行文件。
+最后在 `cmake-arm64-v8a-c++_static-android21-Release` 目录中生成目标可执行文件。
 
 ### 运行
 
 使用我的 [arun](https://github.com/ClarkGuan/arun) 工具即可：
 
 ```bash
-$ arun cmake-android-build/hello_world
-prepare to push /Users/xxx/dev/source/cprojects/home/hello_world/cmake-android-build/hello_world to device
-/Users/xxx/dev/source/cprojects/home/hello_world/cmake-android-build/hello_world: 1 file pushed, 0 skipped. 46.5 MB/s (4713888 bytes in 0.097s)
-[程序输出如下]
+$ arun cmake-arm64-v8a-c++_static-android21-Release/hello
 Hello world!!!
-[程序执行完毕]
-    0m00.03s real     0m00.02s user     0m00.00s system
+============================
+[exit status:(0)]
+    0m00.02s real     0m00.01s user     0m00.02s system
 ```
 
 ## 其他
 
 1. 寻找 Android SDK 路径时使用 `$ANDROID_HOME` 环境变量，如果没有，会让用户手动输入
 2. 优先使用 Android SDK 中的 NDK 和 CMake 工具；如果没有下载，需要提前下载好
+3. 由于 NDKr22 之后对于官方 CMake 的支持加强了，因此本工具目前仅支持最大的 NDK 版本为 r21
